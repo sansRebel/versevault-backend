@@ -3,6 +3,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const authRoutes = require('./routes/auth');
+const blogRoutes = require('./routes/blog');
 
 dotenv.config(); // Load environment variables
 
@@ -20,6 +21,7 @@ app.use(express.json()); // This parses incoming JSON requests
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/blog', blogRoutes);
 
 // Connect to MongoDB
 mongoose

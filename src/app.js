@@ -8,12 +8,15 @@ dotenv.config(); // Load environment variables
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Global logger middleware (optional, for debugging)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
 
-// Debug the MongoDB URI (remove in production)
-console.log('MongoDB URI:', process.env.MONGO_URI);
+// Middleware for CORS and JSON parsing
+app.use(cors());
+app.use(express.json()); // This parses incoming JSON requests
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -24,7 +27,7 @@ mongoose
   .then(() => console.log('Connected to MongoDB successfully'))
   .catch((err) => {
     console.error('MongoDB connection error:', err);
-    process.exit(1);
+    process.exit(1); // Exit the app if the connection fails
   });
 
 // Basic route
@@ -32,7 +35,7 @@ app.get('/', (req, res) => {
   res.send('Welcome to VerseVault Backend!');
 });
 
-// Handle graceful shutdown
+// Graceful shutdown
 process.on('SIGINT', async () => {
   await mongoose.disconnect();
   console.log('MongoDB connection closed');

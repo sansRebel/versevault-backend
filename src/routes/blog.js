@@ -2,9 +2,10 @@ const express = require('express');
 const authenticateToken = require('../middlewares/auth');
 const router = express.Router();
 const Blog = require('../models/Blog');
+const upload = require('../config/multer');
 
 // Example: Protected route for posting a blog
-router.post('/create', authenticateToken, async (req, res) => {
+router.post('/create', authenticateToken, upload.single('image'), async (req, res) => {
     const { title, content } = req.body;
   
     // Validate input
@@ -21,6 +22,7 @@ router.post('/create', authenticateToken, async (req, res) => {
         title,
         content,
         author: user.username, // Use the username from the authenticated user
+        imageUrl: req.file?.path,
       });
   
       // Save the blog post to the database
@@ -53,7 +55,7 @@ router.get('/user', authenticateToken, async (req, res) => {
     let userBlogs;
     try {
       console.log('Executing query with:', { author: username });
-      userBlogs = await Blog.find({ author: "testuser" }).sort({ createdAt: -1 });
+      userBlogs = await Blog.find({ author: username }).sort({ createdAt: -1 });
       console.log('Query successful, results:', userBlogs);
     } catch (queryError) {
       console.error('Error during query execution:', queryError); // Log query-specific errors
@@ -66,6 +68,81 @@ router.get('/user', authenticateToken, async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+router.get('/search', async (req, res) => {
+  try {
+    const { query } = req.query; // Extract the search term from the query string
+
+    if (!query) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    // Use regex to perform a case-insensitive search in title, content, or author
+    const searchResults = await Blog.find({
+      $or: [
+        { title: { $regex: query, $options: 'i' } },
+        { content: { $regex: query, $options: 'i' } },
+        { author: { $regex: query, $options: 'i' } }
+      ]
+    }).sort({ createdAt: -1 });
+
+    return res.status(200).json(searchResults);
+  } catch (error) {
+    console.error('Error searching blogs:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Like a blog
+router.post('/:id/like', authenticateToken, async (req, res) => {
+  try {
+    const blogId = req.params.id;
+
+    // Find the blog by ID
+    const blog = await Blog.findById(blogId);
+    if (!blog) {
+      return res.status(404).json({ message: 'Blog not found' });
+    }
+
+    // Increment the likes
+    blog.likes += 1;
+    await blog.save();
+
+    return res.status(200).json({ message: 'Blog liked successfully', likes: blog.likes });
+  } catch (error) {
+    console.error('Error liking blog:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Comment on a blog
+router.post('/:id/comment', authenticateToken, async (req, res) => {
+  try {
+    const blogId = req.params.id;
+    const { comment } = req.body;
+    const username = req.user.username; // Extract username from token
+
+    if (!comment) {
+      return res.status(400).json({ message: 'Comment content is required' });
+    }
+
+    // Find the blog by ID
+    const blog = await Blog.findById(blogId);
+    if (!blog) {
+      return res.status(404).json({ message: 'Blog not found' });
+    }
+
+    // Add the comment
+    blog.comments.push({ username, comment });
+    await blog.save();
+
+    return res.status(200).json({ message: 'Comment added successfully', comments: blog.comments });
+  } catch (error) {
+    console.error('Error commenting on blog:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 // Edit blog
 router.put('/:id', authenticateToken, async (req, res) => {
@@ -128,6 +205,7 @@ router.delete('/:id', authenticateToken, async (req, res) => {
   }
 });
 
+
 // Get a single blog by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -159,6 +237,7 @@ router.get('/', async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 
 

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { type } = require('os');
 
 const BlogSchema = new mongoose.Schema(
   {
@@ -23,6 +24,14 @@ const BlogSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    comments: [
+      {
+        username: String,
+        comment: String,
+        createdAt: {type: Date, default: Date.now},
+      }
+    ],
+    imageUrl: {type:String },
   },
   { versionKey: false }
 );

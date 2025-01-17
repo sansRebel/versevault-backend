@@ -44,7 +44,7 @@ router.post('/signup', async (req, res) => {
 // Sign In Route
 router.post('/signin', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, email, password } = req.body;
 
     // Validate input
     if (!email || !password) {
@@ -74,6 +74,8 @@ router.post('/signin', async (req, res) => {
     return res.status(200).json({
       message: 'Login successful',
       token,
+      username,
+      email,
     });
   } catch (error) {
     console.error(error);

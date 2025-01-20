@@ -93,10 +93,10 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// Like a blog
 router.post('/:id/like', authenticateToken, async (req, res) => {
   try {
     const blogId = req.params.id;
+    const username = req.user.username; // Extract username from the token
 
     // Find the blog by ID
     const blog = await Blog.findById(blogId);
@@ -104,8 +104,15 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
       return res.status(404).json({ message: 'Blog not found' });
     }
 
-    // Increment the likes
+    // Check if the user has already liked the blog
+    if (blog.likedBy.includes(username)) {
+      return res.status(400).json({ message: 'You have already liked this blog.' });
+    }
+
+    // Add the user's like
     blog.likes += 1;
+    blog.likedBy.push(username);
+
     await blog.save();
 
     return res.status(200).json({ message: 'Blog liked successfully', likes: blog.likes });
@@ -114,6 +121,7 @@ router.post('/:id/like', authenticateToken, async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 // Comment on a blog
 router.post('/:id/comment', authenticateToken, async (req, res) => {
@@ -139,6 +147,36 @@ router.post('/:id/comment', authenticateToken, async (req, res) => {
     return res.status(200).json({ message: 'Comment added successfully', comments: blog.comments });
   } catch (error) {
     console.error('Error commenting on blog:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Unlike a blog
+router.post('/:id/unlike', authenticateToken, async (req, res) => {
+  try {
+    const blogId = req.params.id;
+    const username = req.user.username; // Extract username from the token
+
+    // Find the blog by ID
+    const blog = await Blog.findById(blogId);
+    if (!blog) {
+      return res.status(404).json({ message: 'Blog not found' });
+    }
+
+    // Check if the user has already liked the blog
+    if (!blog.likedBy.includes(username)) {
+      return res.status(400).json({ message: 'You have not liked this blog.' });
+    }
+
+    // Remove the user's like
+    blog.likes -= 1;
+    blog.likedBy = blog.likedBy.filter(user => user !== username);
+
+    await blog.save();
+
+    return res.status(200).json({ message: 'Blog unliked successfully', likes: blog.likes });
+  } catch (error) {
+    console.error('Error unliking blog:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
